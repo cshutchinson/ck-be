@@ -20,6 +20,18 @@ var io = require('socket.io')(http);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
+var whitelist = ['http://localhost:8080'];
+app.use(cors({
+  origin: function(origin, callback){
+    var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
+    callback(null, originIsWhitelisted);
+  },
+  methods: ['GET', 'PUT', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
+}
+));
+
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
@@ -27,8 +39,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.use(cors());
 
 app.use('/', routes);
 app.use('/users', users);
