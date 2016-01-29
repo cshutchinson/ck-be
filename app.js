@@ -11,6 +11,9 @@ var users = require('./routes/users');
 var app = express();
 var knex = require('./db/knex');
 
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -26,20 +29,50 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', routes);
 app.use('/users', users);
 
+// web sockets
+io.on('connection', function(socket){
+  socket.on('getData', function(){
+    buildInitialData.then(function(data){
+      io.emit('getData', data)
+    })
+  });
+});
+
+// console.log(buildInitialData());
+
+function buildInitialData (){
+  return getCommodityData('GC.1').then(function(gc){
+    getCommodityData('SI.1').then(function(si){
+      getCommodityData('HG.1').then(function(hg){
+        var dataObject = {
+          gc: gc,
+          si: si,
+          hg: hg
+        }
+        return (dataObject);
+      })
+    })
+  })
+}
+
+function getCommodityData (commodity){
+  return knex('commodities')
+  .where('name', commodity)
+  .orderBy('id', 'desc')
+  .limit(10)
+  .then(function(result){
+    return result;
+  })
+}
+
 // ck interval code to update commodity prices
 setInterval(commoditiesUpdate, 10000);
 
-
 function commoditiesUpdate(){
-  // console.log(genPrices());
   var change = genPrices();
-  // writeCommodityToDB('GC.1', getLastPriceDB('GC.1').price*change[0]);
-  // writeCommodityToDB('SI.1', getLastPriceDB('SI.1').price*change[0]);
-  // writeCommodityToDB('HG.1', getLastPriceDB('HG.1').price*change[0]);
   getLastPriceDB('GC.1').then(function(gc){
     getLastPriceDB('SI.1').then(function(si){
       getLastPriceDB('HG.1').then(function(hg){
-        // console.log(gc);
         writeCommodityToDB('GC.1', (gc.price*(1+change[0])).toFixed(2)).then(function(){
           writeCommodityToDB('SI.1', (si.price*(1+change[1])).toFixed(2)).then(function(){
             writeCommodityToDB('HG.1', (hg.price*(1+change[2])).toFixed(2)).then(function(){
@@ -89,6 +122,8 @@ function writeCommodityToDB(commodity, price){
     update: new Date()
   })
 }
+
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
