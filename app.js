@@ -73,7 +73,7 @@ app.use('/users', users);
 io.on('connection', function(socket){
   socket.on('getData', function(){
     buildInitialData.then(function(data){
-      io.emit('getData', data)
+      socket.emit('getData', data)
     })
   });
 });
