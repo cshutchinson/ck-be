@@ -46,7 +46,7 @@ var io = require('socket.io')(server);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
-var whitelist = ['http://localhost:8080'];
+var whitelist = ['http://localhost:8080', 'https://cknoahchris.firebaseapp.com/'];
 app.use(cors({
   origin: function(origin, callback){
     var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
