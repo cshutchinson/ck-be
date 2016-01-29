@@ -9,6 +9,7 @@ var routes = require('./routes/index');
 var users = require('./routes/users');
 
 var app = express();
+var knex = require('./db/knex');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -24,6 +25,70 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
 app.use('/users', users);
+
+// ck interval code to update commodity prices
+setInterval(commoditiesUpdate, 10000);
+
+
+function commoditiesUpdate(){
+  // console.log(genPrices());
+  var change = genPrices();
+  // writeCommodityToDB('GC.1', getLastPriceDB('GC.1').price*change[0]);
+  // writeCommodityToDB('SI.1', getLastPriceDB('SI.1').price*change[0]);
+  // writeCommodityToDB('HG.1', getLastPriceDB('HG.1').price*change[0]);
+  getLastPriceDB('GC.1').then(function(gc){
+    getLastPriceDB('SI.1').then(function(si){
+      getLastPriceDB('HG.1').then(function(hg){
+        // console.log(gc);
+        writeCommodityToDB('GC.1', (gc.price*(1+change[0])).toFixed(2)).then(function(){
+          writeCommodityToDB('SI.1', (si.price*(1+change[1])).toFixed(2)).then(function(){
+            writeCommodityToDB('HG.1', (hg.price*(1+change[2])).toFixed(2)).then(function(){
+              getLastPriceDB('GC.1').then(function(gc){
+                getLastPriceDB('SI.1').then(function(si){
+                  getLastPriceDB('HG.1').then(function(hg){
+                    console.log('GC.1: ', gc.price, 'SI.1: ', si.price, 'HG.1: ', hg.price);
+                  })
+                })
+              });
+            })
+          })
+        });
+      })
+    })
+  });
+}
+
+function genPrices(){
+  var plusOrMinus = [
+    Math.random() < 0.5 ? -1 : 1,
+    Math.random() < 0.5 ? -1 : 1,
+    Math.random() < 0.5 ? -1 : 1
+  ]
+  // console.log(plusOrMinus[0]);
+  return [
+    Math.random()/100*plusOrMinus[0],
+    Math.random()/100*plusOrMinus[1],
+    Math.random()/100*plusOrMinus[2]
+  ]
+}
+
+function getLastPriceDB(commodity){
+  return knex('commodities')
+  .where('name', commodity)
+  .orderBy('id', 'desc')
+  .first('id', 'name', 'price', 'update')
+  .then(function(result){
+    return result;
+  })
+}
+
+function writeCommodityToDB(commodity, price){
+  return knex('commodities').insert({
+    name: commodity,
+    price: price,
+    update: new Date()
+  })
+}
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
