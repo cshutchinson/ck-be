@@ -71,8 +71,9 @@ app.use('/users', users);
 
 // web sockets
 io.on('connection', function(socket){
+  console.log('got connection');
   socket.on('getData', function(){
-    buildInitialData.then(function(data){
+    buildInitialData().then(function(data){
       socket.emit('getData', data)
     })
   });
@@ -139,14 +140,14 @@ function onListening() {
 
 function buildInitialData (){
   return getCommodityData('GC.1').then(function(gc){
-    getCommodityData('SI.1').then(function(si){
-      getCommodityData('HG.1').then(function(hg){
+    return getCommodityData('SI.1').then(function(si){
+      return getCommodityData('HG.1').then(function(hg){
         var dataObject = {
           gc: gc,
           si: si,
           hg: hg
         }
-        return (dataObject);
+        return Promise.resolve(dataObject);
       })
     })
   })
